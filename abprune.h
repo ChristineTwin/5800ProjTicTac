@@ -12,6 +12,7 @@ public:
     void print_board() const;
     char check_win() const;
     bool has_moves() const;
+    int evaluate() const;
     int minimax(int depth, bool is_maximizing, int alpha, int beta);
     void best_move(); // Uses minimax function to make AI move
     void player_move(); // Player move
@@ -129,19 +130,38 @@ bool tictactoe::has_moves() const {
     return false;
 }
 
+int tictactoe::evaluate() const{
+    // We need this for bigger boards
+    int score = 0;
+    for (int row = 0; row < size; row++){
+        for (int col = 0; col < size; col++){
+            // Lets give squares in the middle more points
+            // Since further from the edge means more ways to build off of
+            int value = size - abs(row - int(size / 2)) - abs(col - int(size / 2));
+            if (board[row][col] == 'O'){
+                score = score + value;
+            }
+        }
+    }
+    return score;
+}
+
 int tictactoe::minimax(int depth, bool is_maximizing, int alpha, int beta) {
     char winner = check_win();
-    if (winner == 'X') return -5; // Player 'X' winning is BAD for 'O'
-    if (winner == 'O') return 5;  // Player 'O' winning is GOOD
+    if (winner == 'X') return -size*size; // Player 'X' winning is BAD for 'O'
+    if (winner == 'O') return size*size;  // Player 'O' winning is GOOD
     if (!has_moves()) return 0;   // No more moves means a draw
+    if (depth == 0){
+        return evaluate();
+    }
 
     if (is_maximizing) {
-        int best_score = numeric_limits<int>::min();
+        int best_score = INT_MIN;
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 if (board[row][col] == ' ') {  // Check if cell is empty
                     board[row][col] = 'O';    // Make the move
-                    best_score = max(best_score, minimax(depth + 1, false, alpha, beta));
+                    best_score = max(best_score, minimax(depth - 1, false, alpha, beta));
                     board[row][col] = ' ';    // Undo the move
                     alpha = max(alpha, best_score);
                     if (beta <= alpha) {
@@ -152,12 +172,12 @@ int tictactoe::minimax(int depth, bool is_maximizing, int alpha, int beta) {
         }
         return best_score;
     } else {
-        int best_score = numeric_limits<int>::max();
+        int best_score = INT_MAX;
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 if (board[row][col] == ' ') {  // Check if cell is empty
                     board[row][col] = 'X';    // Make the move
-                    best_score = min(best_score, minimax(depth + 1, true, alpha, beta));
+                    best_score = min(best_score, minimax(depth - 1, true, alpha, beta));
                     board[row][col] = ' ';    // Undo the move
                     beta = min(beta, best_score);
                     if (beta <= alpha) {
@@ -181,7 +201,7 @@ void tictactoe::best_move() {
         for (int col = 0; col < size; col++) {
             if (board[row][col] == ' ') {
                 board[row][col] = 'O';
-                int move_val = minimax(0, false, alpha, beta);
+                int move_val = minimax(3, false, alpha, beta);
                 board[row][col] = ' ';
                 if (move_val > best_val) {
                     best_row = row;
@@ -192,6 +212,8 @@ void tictactoe::best_move() {
         }
     }
     board[best_row][best_col] = 'O'; // Play me where its BEST 
+
+}
 
 void tictactoe::player_move() {
     int row, col;
